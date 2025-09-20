@@ -1,20 +1,26 @@
-import { Message } from "../messages/messages";
+// openAIchat.ts
 
-export async function getChatResponse(messages: Message[], apiKey: string) {
-  throw new Error("Not implemented");
-}
+import { Message } from "./types";
 
 export async function getChatResponseStream(
   messages: Message[],
   apiKey: string,
   openRouterKey: string,
-  customDownMessage: string // <- añadido para mensaje configurable
+  customDownMessage: string // <- mensaje configurable desde settings
 ) {
   console.log("getChatResponseStream");
 
   const stream = new ReadableStream({
     async start(controller: ReadableStreamDefaultController) {
       try {
+        // --- CASO 1: API en blanco ---
+        if (!openRouterKey || openRouterKey.trim() === "") {
+          controller.enqueue(
+            "Necesitas la API de OpenRouter, ve a las Opciones y vaya a la pestaña Personalidad"
+          );
+          return controller.close();
+        }
+
         const OPENROUTER_API_KEY = openRouterKey;
         const YOUR_SITE_URL = "https://chat-vrm-window.vercel.app/";
         const YOUR_SITE_NAME = "ChatVRM";
@@ -39,15 +45,13 @@ export async function getChatResponseStream(
           }
         );
 
-        // --- Si la API Key es inválida ---
+        // --- CASO 2: API inválida ---
         if (generation.status === 401 || generation.status === 403) {
-          controller.enqueue(
-            "La API de OpenRouter no funciona o es inválida"
-          );
+          controller.enqueue("La API de OpenRouter no funciona o es inválida");
           return controller.close();
         }
 
-        // --- Si el servidor de OpenRouter está caído ---
+        // --- CASO 3: Servidor caído ---
         if (generation.status >= 500) {
           controller.enqueue(
             customDownMessage ||
@@ -56,6 +60,7 @@ export async function getChatResponseStream(
           return controller.close();
         }
 
+        // --- Lógica normal de streaming ---
         if (generation.body) {
           const reader = generation.body.getReader();
           try {
@@ -78,13 +83,13 @@ export async function getChatResponseStream(
                 line.startsWith("data:")
               );
 
-              const parsedMessages = dataLines.map((line) => {
-                const jsonStr = line.substring(5); // remove "data: "
+              const messages = dataLines.map((line) => {
+                const jsonStr = line.substring(5);
                 return JSON.parse(jsonStr);
               });
 
-              parsedMessages.forEach((msg) => {
-                const content = msg.choices[0].delta.content;
+              messages.forEach((message) => {
+                const content = message.choices[0].delta.content;
                 if (content) controller.enqueue(content);
               });
             }
@@ -95,6 +100,7 @@ export async function getChatResponseStream(
           }
         }
       } catch (error) {
+        // --- CASO 3 (error de conexión) ---
         controller.enqueue(
           customDownMessage || "Error de conexión con OpenRouter."
         );
