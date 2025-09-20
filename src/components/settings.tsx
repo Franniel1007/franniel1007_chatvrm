@@ -25,6 +25,7 @@ type Props = {
   openAiKey: string;
   elevenLabsKey: string;
   openRouterKey: string;
+  customDownMessage: string;
   systemPrompt: string;
   chatLog: MessageWithChat[];
   elevenLabsParam: ElevenLabsParam;
@@ -40,43 +41,42 @@ type Props = {
   onClickOpenVrmFile: () => void;
   onClickResetChatLog: () => void;
   onClickResetSystemPrompt: () => void;
-  backgroundImage: string;
   onChangeBackgroundImage: (image: string) => void;
+  backgroundImage: string;
   onTokensUpdate: (tokens: any) => void;
   onChatMessage: (message: any) => void;
-  customDownMessage: string;
-  onChangeCustomDownMessage: (msg: string) => void;
+  onChangeCustomDownMessage: (msg: string) => void; // ⚡ recibe string
 };
 
 export const Settings = ({
   openAiKey,
   elevenLabsKey,
   openRouterKey,
+  customDownMessage,
   chatLog,
   systemPrompt,
   elevenLabsParam,
   koeiroParam,
   onClickClose,
-  onChangeSystemPrompt,
   onChangeAiKey,
   onChangeOpenRouterKey,
   onChangeElevenLabsKey,
   onChangeElevenLabsVoice,
+  onChangeSystemPrompt,
   onChangeChatLog,
   onChangeKoeiroParam,
   onClickOpenVrmFile,
   onClickResetChatLog,
   onClickResetSystemPrompt,
-  backgroundImage,
   onChangeBackgroundImage,
+  backgroundImage,
   onTokensUpdate,
   onChatMessage,
-  customDownMessage,
   onChangeCustomDownMessage,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<
-    "general" | "personality" | "voices" | "vrm" | "streaming" | "history" | "about"
+    "personality" | "voices" | "vrm" | "streaming" | "history" | "about" | "general"
   >("personality");
 
   useEffect(() => {
@@ -122,43 +122,27 @@ export const Settings = ({
           {/* Tabs */}
           <div className="flex gap-4 md:gap-8 border-b mb-24 overflow-x-auto">
             {[
-              { id: "general", label: "General" },
               { id: "personality", label: "Personalidad" },
               { id: "voices", label: "Voces" },
               { id: "vrm", label: "Personaje VRM" },
               { id: "streaming", label: "Transmisión" },
               { id: "history", label: "Historial" },
+              { id: "general", label: "General" },
               { id: "about", label: "Acerca de" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`pb-4 px-6 md:px-8 whitespace-nowrap ${
-                  activeTab === tab.id ? "border-b-2 border-secondary font-bold" : "text-gray-500"
+                  activeTab === tab.id
+                    ? "border-b-2 border-secondary font-bold"
+                    : "text-gray-500"
                 }`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-
-          {/* GENERAL */}
-          {activeTab === "general" && (
-            <div>
-              <div className="my-24">
-                <div className="my-8 typography-20 font-bold">Mensaje de caída de OpenRouter</div>
-                <textarea
-                  value={customDownMessage}
-                  onChange={(e) => {
-                    onChangeCustomDownMessage(e.target.value);
-                    localStorage.setItem("customDownMessage", e.target.value);
-                  }}
-                  placeholder="Ejemplo: El servidor de OpenRouter está en mantenimiento, inténtalo más tarde."
-                  className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-120 rounded-8 w-full"
-                />
-              </div>
-            </div>
-          )}
 
           {/* PERSONALIDAD */}
           {activeTab === "personality" && (
@@ -177,9 +161,7 @@ export const Settings = ({
               <div className="my-24">
                 <div className="my-8 typography-20 font-bold">Character Settings</div>
                 <div className="my-8">
-                  <TextButton onClick={onClickResetSystemPrompt}>
-                    Reset character settings
-                  </TextButton>
+                  <TextButton onClick={onClickResetSystemPrompt}>Reset character settings</TextButton>
                 </div>
                 <textarea
                   value={systemPrompt}
@@ -211,13 +193,9 @@ export const Settings = ({
                   onChange={onChangeElevenLabsVoice}
                   value={elevenLabsParam.voiceId}
                 >
-                  {elevenLabsVoices.length === 0 && (
-                    <option value="">-- select voice --</option>
-                  )}
+                  {elevenLabsVoices.length === 0 && <option value="">-- select voice --</option>}
                   {elevenLabsVoices.map((voice, index) => (
-                    <option key={index} value={voice.voice_id}>
-                      {voice.name}
-                    </option>
+                    <option key={index} value={voice.voice_id}>{voice.name}</option>
                   ))}
                 </select>
               </div>
@@ -237,11 +215,7 @@ export const Settings = ({
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="my-4" />
                 {backgroundImage && (
                   <div className="my-8">
-                    <img
-                      src={backgroundImage}
-                      alt="Background"
-                      className="max-w-[200px] rounded-4"
-                    />
+                    <img src={backgroundImage} alt="Background" className="max-w-[200px] rounded-4" />
                     <TextButton onClick={handleRemoveBackground}>Remove Background</TextButton>
                   </div>
                 )}
@@ -262,10 +236,7 @@ export const Settings = ({
                 <TextButton onClick={onClickResetChatLog}>Reset conversation history</TextButton>
               </div>
               {chatLog.map((value, index) => (
-                <div
-                  key={index}
-                  className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center"
-                >
+                <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center">
                   <div className="w-[120px] py-8 flex items-center gap-2">
                     {value.role === "assistant" ? "Character" : value.username || "You"}
                     {value.badges?.map((badge, i) => (
@@ -283,24 +254,32 @@ export const Settings = ({
             </div>
           )}
 
+          {/* GENERAL */}
+          {activeTab === "general" && (
+            <div className="my-24">
+              <div className="my-8 typography-20 font-bold">
+                Mensaje personalizado de caída de OpenRouter
+              </div>
+              <input
+                type="text"
+                value={customDownMessage}
+                onChange={(e) => onChangeCustomDownMessage(e.target.value)}
+                className="w-full px-16 py-8 bg-surface1 hover:bg-surface1-hover rounded-8"
+                placeholder="Escribe aquí el mensaje..."
+              />
+            </div>
+          )}
+
           {/* ACERCA DE */}
           {activeTab === "about" && (
             <div className="my-40 text-gray-800">
               <div className="typography-20 font-bold mb-6">Acerca de</div>
+              <p className="mb-4">ChatVRM by <strong>FrannielMedina</strong></p>
               <p className="mb-4">
-                ChatVRM by <strong>FrannielMedina</strong>
-              </p>
-              <p className="mb-4">
-                Fork creado a partir de{" "}
-                <Link
-                  url="https://github.com/zoan37/ChatVRM"
-                  label="https://github.com/zoan37/ChatVRM"
-                />
+                Fork creado a partir de <Link url="https://github.com/zoan37/ChatVRM" label="https://github.com/zoan37/ChatVRM" />
               </p>
               <p className="mb-4">Inspirado por Pixiv, OpenRouter y ElevenLabs</p>
-              <p className="text-sm text-gray-600">
-                (C)2025 Franniel Medina - Todos los derechos reservados
-              </p>
+              <p className="text-sm text-gray-600">(C)2025 Franniel Medina - Todos los derechos reservados</p>
             </div>
           )}
         </div>
