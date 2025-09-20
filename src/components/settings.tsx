@@ -6,7 +6,7 @@ import { Message } from "@/features/messages/messages";
 import { getVoices } from "@/features/elevenlabs/elevenlabs";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
-import { RestreamTokens } from "./restreamTokens";
+import { RestreamTokens, ChatMessage } from "./restreamTokens";
 import { Link } from "./link";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   elevenLabsKey: string;
   openRouterKey: string;
   systemPrompt: string;
-  chatLog: Message[];
+  chatLog: (Message & ChatMessage)[];
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
   onClickClose: () => void;
@@ -31,7 +31,7 @@ type Props = {
   backgroundImage: string;
   onChangeBackgroundImage: (image: string) => void;
   onTokensUpdate: (tokens: any) => void;
-  onChatMessage: (message: string) => void;
+  onChatMessage: (message: ChatMessage) => void;
 };
 
 export const Settings = ({
@@ -67,17 +67,13 @@ export const Settings = ({
     if (elevenLabsKey) {
       getVoices(elevenLabsKey)
         .then((data) => {
-          if (data?.voices) {
-            setElevenLabsVoices(data.voices);
-          }
+          if (data?.voices) setElevenLabsVoices(data.voices);
         })
         .catch((err) => {
           console.error("Failed to fetch voices:", err);
           setElevenLabsVoices([]);
         });
-    } else {
-      setElevenLabsVoices([]);
-    }
+    } else setElevenLabsVoices([]);
   }, [elevenLabsKey]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,8 +94,38 @@ export const Settings = ({
     localStorage.removeItem("backgroundImage");
   };
 
+  // Función para renderizar texto con emojis
+  const renderTextWithEmotes = (value: Message & ChatMessage) => {
+    if (!value.emotes) return value.content;
+    const content = value.content;
+    const parts: React.ReactNode[] = [];
+    const emotePositions: { start: number; end: number; url: string }[] = [];
+
+    Object.entries(value.emotes).forEach(([emoteId, positions]) => {
+      positions.forEach((pos) => {
+        const [start, end] = pos.split("-").map(Number);
+        emotePositions.push({
+          start,
+          end,
+          url: `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/1.0`,
+        });
+      });
+    });
+
+    emotePositions.sort((a, b) => a.start - b.start);
+
+    let lastIndex = 0;
+    emotePositions.forEach((em, idx) => {
+      if (em.start > lastIndex) parts.push(content.slice(lastIndex, em.start));
+      parts.push(<img key={idx} src={em.url} className="inline h-5 w-5" />);
+      lastIndex = em.end + 1;
+    });
+    if (lastIndex < content.length) parts.push(content.slice(lastIndex));
+    return parts;
+  };
+
   return (
-    <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur ">
+    <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur">
       <div className="absolute m-24">
         <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
       </div>
@@ -224,13 +250,18 @@ export const Settings = ({
                 <TextButton onClick={onClickResetChatLog}>Reset conversation history</TextButton>
               </div>
               {chatLog.map((value, index) => (
-                <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4">
-                  <div className="w-[64px] py-8">{value.role === "assistant" ? "Character" : "You"}</div>
+                <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center">
+                  <div className="w-[120px] py-8 flex items-center gap-2">
+                    {value.role === "assistant" ? "Character" : value.displayName || value.username}
+                    {value.badges?.map((badge, i) => (
+                      <img key={i} src={badge} className="h-4 w-4" />
+                    ))}
+                  </div>
                   <input
                     className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                     type="text"
-                    value={value.content}
-                    onChange={(event) => onChangeChatLog(index, event.target.value)}
+                    value={renderTextWithEmotes(value)}
+                    readOnly
                   />
                 </div>
               ))}
