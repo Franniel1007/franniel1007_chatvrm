@@ -17,18 +17,18 @@ interface ChatMessage {
     displayName: string;
     timestamp: number;
     text: string;
-    isSystemMessage?: boolean; // Para identificar mensajes del sistema
 }
 
 type Props = {
     onTokensUpdate: (tokens: any) => void;
-    onChatMessage: (message: ChatMessage) => void;
+    onChatMessage: (message: string) => void;
 };
 
 export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage }) => {
     const [jsonInput, setJsonInput] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState(false);
+    const [rawMessages, setRawMessages] = useState<any[]>([]);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -70,7 +70,9 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
     };
 
     const handleClearTokens = () => {
+        // Stop auto-refresh when tokens are cleared
         tokenRefreshService.stopAutoRefresh();
+
         Cookies.remove('restream_tokens');
         onTokensUpdate(null);
         setJsonInput('');
@@ -78,45 +80,60 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
     };
 
     useEffect(() => {
+        // Add listeners for websocket events and token refresh events
         const handleConnectionChange = (isConnected: boolean) => {
             setIsConnected(isConnected);
             setError(null);
         };
 
-        const handleChatMessage = (message: ChatMessage) => {
-            setMessages(prev => [...prev, message]);
-            onChatMessage(message);
+        const handleRawMessage = (message: any) => {
+            setRawMessages(prev => [...prev, message]);
         };
 
+        const handleChatMessage = (message: ChatMessage) => {
+            setMessages(prev => [...prev, message]);
+        };
+
+        // Add new handler for token refresh
         const handleTokenRefresh = (newTokens: RestreamTokens) => {
             const formattedJson = JSON.stringify(newTokens, null, 2);
             setJsonInput(formattedJson);
             setError(null);
+
+            // Re-attach WebSocket event listeners after reconnection
+            websocketService.off('rawMessage', handleRawMessage);
             websocketService.off('chatMessage', handleChatMessage);
+            websocketService.on('rawMessage', handleRawMessage);
             websocketService.on('chatMessage', handleChatMessage);
         };
 
         websocketService.on('connectionChange', handleConnectionChange);
+        websocketService.on('rawMessage', handleRawMessage);
         websocketService.on('chatMessage', handleChatMessage);
         tokenRefreshService.on('tokensRefreshed', handleTokenRefresh);
 
+        // Check initial connection state
         setIsConnected(websocketService.isConnected());
 
         return () => {
             websocketService.off('connectionChange', handleConnectionChange);
+            websocketService.off('rawMessage', handleRawMessage);
             websocketService.off('chatMessage', handleChatMessage);
             tokenRefreshService.off('tokensRefreshed', handleTokenRefresh);
         };
-    }, [onChatMessage]);
+    }, []);
 
     const connectWebSocket = () => {
         try {
             const tokens: RestreamTokens = JSON.parse(jsonInput);
+
             if (!tokens.access_token) {
                 setError('No access token available');
                 return;
             }
+
             websocketService.connect(tokens.access_token);
+            // Start auto-refresh when connecting
             tokenRefreshService.startAutoRefresh(tokens, onTokensUpdate);
         } catch (err) {
             setError('Invalid JSON format or connection error');
@@ -125,20 +142,26 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
 
     const disconnectWebSocket = () => {
         websocketService.disconnect();
+        // Stop auto-refresh when disconnecting
         tokenRefreshService.stopAutoRefresh();
     };
 
-    // Simular un mensaje de sistema y guardarlo en el historial
-    const sendTestSystemMessage = () => {
-        const testMessage: ChatMessage = {
-            username: 'System',
-            displayName: 'System',
-            timestamp: Math.floor(Date.now() / 1000),
-            text: 'Received these messages from your livestream, please respond: Sery Bot: Sery Bot is here seryboArrive FrannielMedina: Hola que tal?',
-            isSystemMessage: true,
+    // Modify sendTestMessage to match websocketService's handler format
+    const sendTestMessage = () => {
+        const testMessage = {
+            payload: {
+                eventPayload: {
+                    author: {
+                        username: 'tester1',
+                        displayName: 'Test User'
+                    },
+                    timestamp: Math.floor(Date.now() / 1000),
+                    text: 'Test message ' + Math.random().toString(36).substring(7)
+                }
+            }
         };
-        onChatMessage(testMessage);
-        setMessages(prev => [...prev, testMessage]);
+
+        websocketService.handleChatMessage(testMessage);
     };
 
     const handleRefreshTokens = async () => {
@@ -148,8 +171,11 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
             setError(null);
 
             const newTokens = await refreshAccessToken(currentTokens.refresh_token);
+
+            // Format the JSON string with proper indentation
             const formattedJson = JSON.stringify(newTokens, null, 2);
 
+            // Save to cookies with 30 days expiry
             Cookies.set('restream_tokens', formattedJson, { expires: 30 });
             onTokensUpdate(newTokens);
             setJsonInput(formattedJson);
@@ -162,16 +188,17 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
 
     return (
         <div className="my-40">
-            <div className="my-16 typography-20 font-bold">Integración con Restream</div>
+            <div className="my-16 typography-20 font-bold">Restream Integration</div>
             <div className="my-16">
-                Obtén tu JSON de tokens de autenticación de Restream desde el{' '}
-                <Link
+                Get your Restream authentication tokens JSON from the <Link
                     url="https://restream-token-fetcher.vercel.app/"
                     label="Restream Token Fetcher"
-                />. Esto permite a ChatVRM escuchar tus mensajes de chat desde Restream (actualmente compatible con fuentes de Twitch y X). Cuando pegues tus tokens JSON y hagas clic en "Empezar a Escuchar", ChatVRM escuchará tus mensajes y actualizará periódicamente tus tokens.
+                />. It gives permission for ChatVRM to listen to your chat messages from Restream (currently X and Twitch sources are supported).
+                Once you paste your tokens JSON and click the Start Listening button, ChatVRM will listen to your chat messages, and periodically
+                refresh your tokens for you.
             </div>
             <div className="my-16">
-                Pega aquí tu JSON de tokens de autenticación de Restream:
+                Paste your Restream authentication tokens JSON here:
             </div>
             <textarea
                 value={jsonInput}
@@ -187,47 +214,66 @@ export const RestreamTokens: React.FC<Props> = ({ onTokensUpdate, onChatMessage 
                     <TextButton
                         onClick={isConnected ? disconnectWebSocket : connectWebSocket}
                     >
-                        {isConnected ? 'Detener Escucha' : 'Empezar a Escuchar'}
+                        {isConnected ? 'Stop Listening' : 'Start Listening'}
                     </TextButton>
                 </div>
                 <div className="pr-8">
-                    <TextButton onClick={handleClearTokens}>Limpiar Tokens</TextButton>
+                    <TextButton onClick={handleClearTokens}>Clear Tokens</TextButton>
                 </div>
                 <div className="pr-8">
                     <TextButton
                         onClick={handleRefreshTokens}
                         disabled={isRefreshing || !jsonInput}
                     >
-                        {isRefreshing ? 'Actualizando...' : 'Actualizar Tokens'}
+                        {isRefreshing ? 'Refreshing...' : 'Refresh Tokens'}
                     </TextButton>
                 </div>
                 {isConnected && (
                     <div>
-                        <TextButton onClick={sendTestSystemMessage}>Enviar Mensaje de Prueba del Sistema</TextButton>
+                        <TextButton onClick={sendTestMessage}>Send Test Message</TextButton>
                     </div>
                 )}
             </div>
+
             {/* Connection Status */}
-            <div className={`my-8 p-8 rounded-4 ${isConnected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                Estado: {isConnected ? 'Conectado' : 'Desconectado'}
+            <div className={`my-8 p-8 rounded-4 ${isConnected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                }`}>
+                Status: {isConnected ? 'Connected' : 'Disconnected'}
             </div>
+
             {/* Filtered Chat Messages */}
             {messages.length > 0 && (
                 <div className="my-16">
-                    <div className="typography-16 font-bold mb-8">Mensajes de Chat Filtrados:</div>
+                    <div className="typography-16 font-bold mb-8">Filtered Chat Messages:</div>
                     <div className="bg-surface1 p-16 rounded-8 max-h-[400px] overflow-y-auto">
                         {messages.map((msg, index) => (
                             <div key={index} className="font-mono text-sm mb-8">
                                 [{new Date(msg.timestamp * 1000).toLocaleTimeString()}]
-                                <strong>{msg.isSystemMessage ? msg.displayName : msg.displayName}</strong>: {msg.text}
+                                <strong>{msg.displayName}</strong> (@{msg.username}):
+                                {msg.text}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
+
+            {/* Raw Messages */}
+            {rawMessages.length > 0 && (
+                <div className="my-16">
+                    <div className="typography-16 font-bold mb-8">Raw Messages:</div>
+                    <div className="bg-surface1 p-16 rounded-8 max-h-[400px] overflow-y-auto">
+                        {rawMessages.map((msg, index) => (
+                            <div key={index} className="font-mono text-sm mb-8">
+                                {JSON.stringify(msg, null, 2)}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div className="text-sm text-gray-600">
-                Tus tokens de Restream se almacenarán de forma segura en las cookies del navegador y se restaurarán cuando regreses.
+                Your Restream tokens will be stored securely in browser cookies and restored when you return.
             </div>
         </div>
     );
-};
+}; 
