@@ -1,128 +1,112 @@
-// src/components/settings.tsx
-import React, { useEffect, useState } from "react";
-import { IconButton } from "./iconButton";
-import { TextButton } from "./textButton";
-import { Message } from "@/features/messages/messages";
-import { getVoices } from "@/features/elevenlabs/elevenlabs";
-import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
-import { KoeiroParam } from "@/features/constants/koeiroParam";
-import { RestreamTokens } from "./restreamTokens";
-import { Link } from "./link";
+"use client";
+
+import { useEffect, useState } from "react";
+import { IconButton } from "@/components/IconButton";
+import { Link } from "@/components/Link";
+import { RestreamTokens } from "@/components/RestreamTokens";
+import { getVoices } from "@/lib/elevenlabs";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Props = {
-  openAiKey: string;
   elevenLabsKey: string;
+  elevenLabsParam: any;
   openRouterKey: string;
   systemPrompt: string;
-  chatLog: Message[];
-  elevenLabsParam: ElevenLabsParam;
-  koeiroParam: KoeiroParam;
+  chatLog: { role: string; content: string }[];
+  backgroundImage: string | null;
   onClickClose: () => void;
-  onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeElevenLabsKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeElevenLabsVoice: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-  onChangeSystemPrompt: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onChangeChatLog: (index: number, text: string) => void;
-  onChangeKoeiroParam: (x: number, y: number) => void;
+  onChangeOpenRouterKey: (val: string) => void;
+  onChangeElevenLabsKey: (val: string) => void;
+  onChangeElevenLabsVoice: (val: string) => void;
   onClickOpenVrmFile: () => void;
-  onClickResetChatLog: () => void;
   onClickResetSystemPrompt: () => void;
-  backgroundImage: string;
-  onChangeBackgroundImage: (image: string) => void;
-  onTokensUpdate: (tokens: any) => void;
+  onChangeSystemPrompt: (val: string) => void;
+  onChangeChatLog: (val: { role: string; content: string }[]) => void;
+  onClickResetChatLog: () => void;
+  onChangeBackgroundImage: (val: string | null) => void;
+  onTokensUpdate: (tokens: number) => void;
   onChatMessage: (message: string) => void;
 };
 
-export const Settings = ({
-  openAiKey,
-  elevenLabsKey,
-  openRouterKey,
-  chatLog,
-  systemPrompt,
-  elevenLabsParam,
-  koeiroParam,
-  onClickClose,
-  onChangeSystemPrompt,
-  onChangeAiKey,
-  onChangeOpenRouterKey,
-  onChangeElevenLabsKey,
-  onChangeElevenLabsVoice,
-  onChangeChatLog,
-  onChangeKoeiroParam,
-  onClickOpenVrmFile,
-  onClickResetChatLog,
-  onClickResetSystemPrompt,
-  backgroundImage,
-  onChangeBackgroundImage,
-  onTokensUpdate,
-  onChatMessage,
-}: Props) => {
+export const Settings = (props: Props) => {
+  const {
+    elevenLabsKey,
+    openRouterKey,
+    systemPrompt,
+    chatLog,
+    onClickClose,
+    onChangeOpenRouterKey,
+    onChangeElevenLabsKey,
+    onChangeElevenLabsVoice,
+    onClickOpenVrmFile,
+    onClickResetSystemPrompt,
+    onChangeSystemPrompt,
+    onChangeChatLog,
+    onClickResetChatLog,
+    onTokensUpdate,
+    onChatMessage,
+  } = props;
+
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    "personality" | "voices" | "vrm" | "streaming" | "history" | "about"
-  >("personality");
+  const [activeTab, setActiveTab] = useState<string>("personality");
+
+  // Guardar pestaña activa en localStorage
+  useEffect(() => {
+    const savedTab = localStorage.getItem("settings-active-tab");
+    if (savedTab) setActiveTab(savedTab);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("settings-active-tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (elevenLabsKey) {
-      getVoices(elevenLabsKey)
-        .then((data) => {
-          if (data?.voices) {
-            setElevenLabsVoices(data.voices);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to fetch voices:", err);
-          setElevenLabsVoices([]);
-        });
-    } else {
-      setElevenLabsVoices([]);
+      getVoices(elevenLabsKey).then((data) => {
+        if (data?.voices) setElevenLabsVoices(data.voices);
+      });
     }
   }, [elevenLabsKey]);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        onChangeBackgroundImage(base64String);
-        localStorage.setItem("backgroundImage", base64String);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveBackground = () => {
-    onChangeBackgroundImage("");
-    localStorage.removeItem("backgroundImage");
-  };
+  const tabs = [
+    { id: "personality", label: "Personalidad" },
+    { id: "voices", label: "Voces" },
+    { id: "vrm", label: "Personaje VRM" },
+    { id: "streaming", label: "Transmisión" },
+    { id: "history", label: "Historial" },
+    { id: "about", label: "Acerca de" },
+  ];
 
   return (
-    <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur ">
-      <div className="absolute m-24">
-        <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
+    <motion.div
+      className="absolute z-40 w-full h-full bg-white/80 backdrop-blur"
+      initial={{ opacity: 0, x: "100%" }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: "100%" }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="absolute m-6">
+        <IconButton
+          iconName="24/Close"
+          isProcessing={false}
+          onClick={onClickClose}
+        />
       </div>
 
       <div className="max-h-full overflow-auto">
-        <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
-          <div className="my-24 typography-32 font-bold">Settings</div>
+        <div className="text-text1 max-w-3xl mx-auto px-6 py-20">
+          <div className="my-8 typography-32 font-bold">Settings</div>
 
           {/* Tabs */}
-          <div className="flex gap-4 md:gap-8 border-b mb-24 overflow-x-auto">
-            {[
-              { id: "personality", label: "Personalidad" },
-              { id: "voices", label: "Voces" },
-              { id: "vrm", label: "Personaje VRM" },
-              { id: "streaming", label: "Transmisión" },
-              { id: "history", label: "Historial" },
-              { id: "about", label: "Acerca de" },
-            ].map((tab) => (
+          <div className="flex gap-6 border-b mb-10 overflow-x-auto">
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-4 px-6 md:px-8 whitespace-nowrap ${
-                  activeTab === tab.id ? "border-b-2 border-secondary font-bold" : "text-gray-500"
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-2 px-4 transition-colors ${
+                  activeTab === tab.id
+                    ? "border-b-2 border-blue-500 font-bold text-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab.label}
@@ -130,128 +114,172 @@ export const Settings = ({
             ))}
           </div>
 
-          {/* PERSONALIDAD */}
-          {activeTab === "personality" && (
-            <div>
-              <div className="my-24">
-                <div className="my-16 typography-20 font-bold">OpenRouter API</div>
-                <input
-                  type="text"
-                  placeholder="OpenRouter API key"
-                  value={openRouterKey}
-                  onChange={onChangeOpenRouterKey}
-                  className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-                />
-              </div>
-
-              <div className="my-24">
-                <div className="my-8 typography-20 font-bold">Character Settings</div>
-                <div className="my-8">
-                  <TextButton onClick={onClickResetSystemPrompt}>Reset character settings</TextButton>
-                </div>
-                <textarea
-                  value={systemPrompt}
-                  onChange={onChangeSystemPrompt}
-                  className="px-16 py-8  bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* VOCES */}
-          {activeTab === "voices" && (
-            <div>
-              <div className="my-24">
-                <div className="my-16 typography-20 font-bold">Eleven Labs API</div>
-                <input
-                  type="text"
-                  placeholder="ElevenLabs API key"
-                  value={elevenLabsKey}
-                  onChange={onChangeElevenLabsKey}
-                  className="my-4 px-16 py-8 w-full h-40 bg-surface3 hover:bg-surface3-hover rounded-4 text-ellipsis"
-                />
-              </div>
-
-              <div className="my-40">
-                <div className="my-16 typography-20 font-bold">Voice Selection</div>
-                <select
-                  className="h-40 px-8"
-                  onChange={onChangeElevenLabsVoice}
-                  value={elevenLabsParam.voiceId}
-                >
-                  {elevenLabsVoices.length === 0 && <option value="">-- select voice --</option>}
-                  {elevenLabsVoices.map((voice, index) => (
-                    <option key={index} value={voice.voice_id}>
-                      {voice.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* VRM */}
-          {activeTab === "vrm" && (
-            <div>
-              <div className="my-40">
-                <div className="my-16 typography-20 font-bold">Character Model</div>
-                <TextButton onClick={onClickOpenVrmFile}>Open VRM</TextButton>
-              </div>
-
-              <div className="my-40">
-                <div className="my-16 typography-20 font-bold">Background Image</div>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="my-4" />
-                {backgroundImage && (
-                  <div className="my-8">
-                    <img src={backgroundImage} alt="Background" className="max-w-[200px] rounded-4" />
-                    <TextButton onClick={handleRemoveBackground}>Remove Background</TextButton>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STREAMING */}
-          {activeTab === "streaming" && (
-            <RestreamTokens onTokensUpdate={onTokensUpdate} onChatMessage={onChatMessage} />
-          )}
-
-          {/* HISTORIAL */}
-          {activeTab === "history" && (
-            <div>
-              <div className="my-8 grid-cols-2">
-                <div className="my-16 typography-20 font-bold">Conversation History</div>
-                <TextButton onClick={onClickResetChatLog}>Reset conversation history</TextButton>
-              </div>
-              {chatLog.map((value, index) => (
-                <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4">
-                  <div className="w-[64px] py-8">{value.role === "assistant" ? "Character" : "You"}</div>
-                  <input
-                    className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
-                    type="text"
-                    value={value.content}
-                    onChange={(event) => onChangeChatLog(index, event.target.value)}
+          {/* Contenido con animación */}
+          <AnimatePresence mode="wait">
+            {activeTab === "personality" && (
+              <motion.div
+                key="personality"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="my-4">
+                  <label className="font-bold block mb-2">System Prompt</label>
+                  <textarea
+                    className="w-full border rounded p-2"
+                    value={systemPrompt}
+                    onChange={(e) => onChangeSystemPrompt(e.target.value)}
                   />
+                  <button
+                    className="mt-2 text-sm text-red-500"
+                    onClick={onClickResetSystemPrompt}
+                  >
+                    Resetear prompt
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
+              </motion.div>
+            )}
 
-          {/* ACERCA DE */}
-          {activeTab === "about" && (
-            <div className="my-40 text-gray-800">
-              <div className="typography-20 font-bold mb-6">Acerca de</div>
-              <p className="mb-4">ChatVRM by <strong>FrannielMedina</strong></p>
-              <p className="mb-4">
-                Fork creado a partir de{" "}
-                <Link url="https://github.com/zoan37/ChatVRM" label="https://github.com/zoan37/ChatVRM" />
-              </p>
-              <p className="mb-4">Inspirado por Pixiv, OpenRouter y ElevenLabs</p>
-              <p className="text-sm text-gray-600">(C)2025 Franniel Medina - Todos los derechos reservados https://beacons.ai/frannielmedinatv</p>
-            </div>
-          )}
+            {activeTab === "voices" && (
+              <motion.div
+                key="voices"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div>
+                  <label className="block mb-2">OpenRouter API</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 mb-4"
+                    value={openRouterKey}
+                    onChange={(e) => onChangeOpenRouterKey(e.target.value)}
+                  />
+                  <label className="block mb-2">ElevenLabs API</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded p-2 mb-4"
+                    value={elevenLabsKey}
+                    onChange={(e) => onChangeElevenLabsKey(e.target.value)}
+                  />
+                  <label className="block mb-2">Voice Selection</label>
+                  <select
+                    className="w-full border rounded p-2"
+                    onChange={(e) => onChangeElevenLabsVoice(e.target.value)}
+                  >
+                    {elevenLabsVoices.map((voice) => (
+                      <option key={voice.voice_id} value={voice.voice_id}>
+                        {voice.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "vrm" && (
+              <motion.div
+                key="vrm"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <button
+                  onClick={onClickOpenVrmFile}
+                  className="bg-purple-600 text-white rounded px-4 py-2"
+                >
+                  Open VRM
+                </button>
+              </motion.div>
+            )}
+
+            {activeTab === "streaming" && (
+              <motion.div
+                key="streaming"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <RestreamTokens
+                  onTokensUpdate={onTokensUpdate}
+                  onChatMessage={onChatMessage}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === "history" && (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="my-4">
+                  <h2 className="font-bold mb-2">Historial de la conversación</h2>
+                  {chatLog.length === 0 ? (
+                    <p className="text-gray-500">No hay mensajes aún.</p>
+                  ) : (
+                    <ul className="border rounded p-2 bg-gray-50 max-h-60 overflow-auto">
+                      {chatLog.map((msg, i) => (
+                        <li key={i} className="mb-1">
+                          <strong>{msg.role}:</strong> {msg.content}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {chatLog.length > 0 && (
+                    <button
+                      className="mt-2 text-sm text-red-500"
+                      onClick={onClickResetChatLog}
+                    >
+                      Borrar historial
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === "about" && (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="text-center my-10 text-gray-800">
+                  <div className="typography-20 font-bold mb-4">Acerca de</div>
+                  <p className="mb-2">
+                    ChatVRM by <strong>FrannielMedina</strong>
+                  </p>
+                  <p className="mb-2">
+                    Fork creado a partir de{" "}
+                    <Link
+                      url="https://github.com/zoan37/ChatVRM"
+                      label="zoan37/ChatVRM"
+                    />
+                  </p>
+                  <p className="mb-2">Inspirado por Pixiv, OpenRouter y ElevenLabs</p>
+                  <p className="text-sm text-gray-600">
+                    (C)2025 Franniel Medina - Todos los derechos reservados
+                  </p>
+                  <p className="mt-4">
+                    <Link
+                      url="https://github.com/Franniel1007/franniel1007_chatvrm"
+                      label="Ver en GitHub"
+                    />
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
