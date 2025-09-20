@@ -7,11 +7,7 @@ import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { RestreamTokens } from "./restreamTokens";
 import { Link } from "./link";
-
-export interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { Message } from "@/features/messages/messages"; // ✅ Import original Message
 
 export interface ChatMessage {
   username: string;
@@ -22,7 +18,8 @@ export interface ChatMessage {
   emojis?: any[];
 }
 
-export type MessageWithChat = Message & Partial<ChatMessage>;
+// Combina el Message original con las propiedades extra de chat
+export type MessageWithChat = Omit<Message, "role"> & Partial<ChatMessage> & { role: Message["role"] };
 
 type Props = {
   openAiKey: string;
@@ -74,9 +71,7 @@ export const Settings = ({
   onChatMessage,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    "personality" | "voices" | "vrm" | "streaming" | "history" | "about"
-  >("personality");
+  const [activeTab, setActiveTab] = useState<"personality" | "voices" | "vrm" | "streaming" | "history" | "about">("personality");
 
   useEffect(() => {
     if (elevenLabsKey) {
@@ -131,9 +126,7 @@ export const Settings = ({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`pb-4 px-6 md:px-8 whitespace-nowrap ${
-                  activeTab === tab.id ? "border-b-2 border-secondary font-bold" : "text-gray-500"
-                }`}
+                className={`pb-4 px-6 md:px-8 whitespace-nowrap ${activeTab === tab.id ? "border-b-2 border-secondary font-bold" : "text-gray-500"}`}
               >
                 {tab.label}
               </button>
@@ -191,9 +184,7 @@ export const Settings = ({
                 >
                   {elevenLabsVoices.length === 0 && <option value="">-- select voice --</option>}
                   {elevenLabsVoices.map((voice, index) => (
-                    <option key={index} value={voice.voice_id}>
-                      {voice.name}
-                    </option>
+                    <option key={index} value={voice.voice_id}>{voice.name}</option>
                   ))}
                 </select>
               </div>
@@ -236,7 +227,7 @@ export const Settings = ({
               {chatLog.map((value, index) => (
                 <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center">
                   <div className="w-[120px] py-8 flex items-center gap-2">
-                    {value.role === "assistant" ? "Character" : value.displayName || value.username || "You"}
+                    {value.role === "assistant" ? "Character" : value.username || "You"}
                     {value.badges?.map((badge, i) => (
                       <img key={i} src={badge} className="h-4 w-4" />
                     ))}
@@ -244,7 +235,7 @@ export const Settings = ({
                   <input
                     className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                     type="text"
-                    value={value.content}
+                    value={value.content || value.text || ""}
                     onChange={(event) => onChangeChatLog(index, event.target.value)}
                   />
                 </div>
@@ -258,8 +249,7 @@ export const Settings = ({
               <div className="typography-20 font-bold mb-6">Acerca de</div>
               <p className="mb-4">ChatVRM by <strong>FrannielMedina</strong></p>
               <p className="mb-4">
-                Fork creado a partir de{" "}
-                <Link url="https://github.com/zoan37/ChatVRM" label="https://github.com/zoan37/ChatVRM" />
+                Fork creado a partir de <Link url="https://github.com/zoan37/ChatVRM" label="https://github.com/zoan37/ChatVRM" />
               </p>
               <p className="mb-4">Inspirado por Pixiv, OpenRouter y ElevenLabs</p>
               <p className="text-sm text-gray-600">(C)2025 Franniel Medina - Todos los derechos reservados</p>
