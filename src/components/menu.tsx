@@ -26,11 +26,12 @@ type Props = {
   handleClickResetSystemPrompt: () => void;
   backgroundImage: string;
   onChangeBackgroundImage: (value: string) => void;
-  onChatMessage: (message: string) => void;
+  onChatMessage: (message: any) => void;
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
 };
+
 export const Menu = ({
   openAiKey,
   elevenLabsKey,
@@ -144,7 +145,7 @@ export const Menu = ({
             label="Settings"
             isProcessing={false}
             onClick={() => setShowSettings(true)}
-          ></IconButton>
+          />
           {showChatLog ? (
             <IconButton
               iconName="24/CommentOutline"
@@ -170,7 +171,7 @@ export const Menu = ({
           elevenLabsKey={elevenLabsKey}
           openRouterKey={openRouterKey}
           elevenLabsParam={elevenLabsParam}
-          chatLog={chatLog}
+          chatLog={chatLog} // ✅ Mantener Message[]
           systemPrompt={systemPrompt}
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
