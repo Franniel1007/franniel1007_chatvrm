@@ -2,19 +2,34 @@
 import React, { useEffect, useState } from "react";
 import { IconButton } from "./iconButton";
 import { TextButton } from "./textButton";
-import { Message } from "@/features/messages/messages";
 import { getVoices } from "@/features/elevenlabs/elevenlabs";
 import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
-import { RestreamTokens, ChatMessage } from "./restreamTokens";
+import { RestreamTokens } from "./restreamTokens";
 import { Link } from "./link";
+
+export interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatMessage {
+  username: string;
+  displayName: string;
+  timestamp: number;
+  text: string;
+  badges?: string[];
+  emojis?: any[];
+}
+
+export type MessageWithChat = Message & Partial<ChatMessage>;
 
 type Props = {
   openAiKey: string;
   elevenLabsKey: string;
   openRouterKey: string;
   systemPrompt: string;
-  chatLog: Message[]; // <-- Solo Message[]
+  chatLog: MessageWithChat[];
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
   onClickClose: () => void;
@@ -31,7 +46,7 @@ type Props = {
   backgroundImage: string;
   onChangeBackgroundImage: (image: string) => void;
   onTokensUpdate: (tokens: any) => void;
-  onChatMessage: (message: ChatMessage) => void;
+  onChatMessage: (message: any) => void;
 };
 
 export const Settings = ({
@@ -69,11 +84,10 @@ export const Settings = ({
         .then((data) => {
           if (data?.voices) setElevenLabsVoices(data.voices);
         })
-        .catch((err) => {
-          console.error("Failed to fetch voices:", err);
-          setElevenLabsVoices([]);
-        });
-    } else setElevenLabsVoices([]);
+        .catch(() => setElevenLabsVoices([]));
+    } else {
+      setElevenLabsVoices([]);
+    }
   }, [elevenLabsKey]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +115,7 @@ export const Settings = ({
       </div>
 
       <div className="max-h-full overflow-auto">
-        <div className="text-text1 max-w-3xl mx-auto px-24 py-64 ">
+        <div className="text-text1 max-w-3xl mx-auto px-24 py-64">
           <div className="my-24 typography-32 font-bold">Settings</div>
 
           {/* Tabs */}
@@ -148,7 +162,7 @@ export const Settings = ({
                 <textarea
                   value={systemPrompt}
                   onChange={onChangeSystemPrompt}
-                  className="px-16 py-8  bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
+                  className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-168 rounded-8 w-full"
                 />
               </div>
             </div>
@@ -222,7 +236,7 @@ export const Settings = ({
               {chatLog.map((value, index) => (
                 <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center">
                   <div className="w-[120px] py-8 flex items-center gap-2">
-                    {value.role === "assistant" ? "Character" : value.username || "You"}
+                    {value.role === "assistant" ? "Character" : value.displayName || value.username || "You"}
                     {value.badges?.map((badge, i) => (
                       <img key={i} src={badge} className="h-4 w-4" />
                     ))}
@@ -231,7 +245,7 @@ export const Settings = ({
                     className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                     type="text"
                     value={value.content}
-                    readOnly
+                    onChange={(event) => onChangeChatLog(index, event.target.value)}
                   />
                 </div>
               ))}
