@@ -31,6 +31,10 @@ type Props = {
   onTokensUpdate: (tokens: any) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
+
+  // 🔥 Nuevas props para el mensaje personalizado
+  customDownMessage: string;
+  onChangeCustomDownMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 export const Menu = ({
@@ -55,6 +59,8 @@ export const Menu = ({
   onChatMessage,
   onTokensUpdate,
   onChangeOpenRouterKey,
+  customDownMessage,
+  onChangeCustomDownMessage,
 }: Props) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChatLog, setShowChatLog] = useState(false);
@@ -67,38 +73,48 @@ export const Menu = ({
   }, [onChangeBackgroundImage]);
 
   const handleChangeSystemPrompt = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => onChangeSystemPrompt(event.target.value),
+    (event: React.ChangeEvent<HTMLTextAreaElement>) =>
+      onChangeSystemPrompt(event.target.value),
     [onChangeSystemPrompt]
   );
 
   const handleAiKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => onChangeAiKey(event.target.value),
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      onChangeAiKey(event.target.value),
     [onChangeAiKey]
   );
 
   const handleElevenLabsKeyChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => onChangeElevenLabsKey(event.target.value),
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      onChangeElevenLabsKey(event.target.value),
     [onChangeElevenLabsKey]
   );
 
   const handleElevenLabsVoiceChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => onChangeElevenLabsParam({ voiceId: event.target.value }),
+    (event: React.ChangeEvent<HTMLSelectElement>) =>
+      onChangeElevenLabsParam({ voiceId: event.target.value }),
     [onChangeElevenLabsParam]
   );
 
   const handleChangeKoeiroParam = useCallback(
-    (x: number, y: number) => onChangeKoeiromapParam({ speakerX: x, speakerY: y }),
+    (x: number, y: number) =>
+      onChangeKoeiromapParam({ speakerX: x, speakerY: y }),
     [onChangeKoeiromapParam]
   );
 
-  const handleClickOpenVrmFile = useCallback(() => fileInputRef.current?.click(), []);
+  const handleClickOpenVrmFile = useCallback(
+    () => fileInputRef.current?.click(),
+    []
+  );
 
   const handleChangeVrmFile = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
       if (file.name.split(".").pop() === "vrm") {
-        const url = URL.createObjectURL(new Blob([file], { type: "application/octet-stream" }));
+        const url = URL.createObjectURL(
+          new Blob([file], { type: "application/octet-stream" })
+        );
         viewer.loadVrm(url);
       }
       event.target.value = "";
@@ -110,11 +126,27 @@ export const Menu = ({
     <>
       <div className="absolute z-10 m-24">
         <div className="grid grid-flow-col gap-[8px]">
-          <IconButton iconName="24/Menu" label="Settings" isProcessing={false} onClick={() => setShowSettings(true)} />
+          <IconButton
+            iconName="24/Menu"
+            label="Settings"
+            isProcessing={false}
+            onClick={() => setShowSettings(true)}
+          />
           {showChatLog ? (
-            <IconButton iconName="24/CommentOutline" label="Conversation Log" isProcessing={false} onClick={() => setShowChatLog(false)} />
+            <IconButton
+              iconName="24/CommentOutline"
+              label="Conversation Log"
+              isProcessing={false}
+              onClick={() => setShowChatLog(false)}
+            />
           ) : (
-            <IconButton iconName="24/CommentFill" label="Conversation Log" isProcessing={false} disabled={chatLog.length <= 0} onClick={() => setShowChatLog(true)} />
+            <IconButton
+              iconName="24/CommentFill"
+              label="Conversation Log"
+              isProcessing={false}
+              disabled={chatLog.length <= 0}
+              onClick={() => setShowChatLog(true)}
+            />
           )}
         </div>
       </div>
@@ -126,7 +158,7 @@ export const Menu = ({
           elevenLabsKey={elevenLabsKey}
           openRouterKey={openRouterKey}
           elevenLabsParam={elevenLabsParam}
-          chatLog={chatLog as MessageWithChat[]} // ✅ Cast al tipo correcto
+          chatLog={chatLog as MessageWithChat[]} // ✅ Cast
           systemPrompt={systemPrompt}
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
@@ -144,11 +176,22 @@ export const Menu = ({
           onTokensUpdate={onTokensUpdate}
           onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
+          // 🔥 Pasamos las nuevas props
+          customDownMessage={customDownMessage}
+          onChangeCustomDownMessage={onChangeCustomDownMessage}
         />
       )}
 
-      {!showChatLog && assistantMessage && <AssistantText message={assistantMessage} />}
-      <input type="file" className="hidden" accept=".vrm" ref={fileInputRef} onChange={handleChangeVrmFile} />
+      {!showChatLog && assistantMessage && (
+        <AssistantText message={assistantMessage} />
+      )}
+      <input
+        type="file"
+        className="hidden"
+        accept=".vrm"
+        ref={fileInputRef}
+        onChange={handleChangeVrmFile}
+      />
     </>
   );
 };
