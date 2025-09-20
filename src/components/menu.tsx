@@ -34,7 +34,7 @@ type Props = {
 
   // Nuevas props para mensaje personalizado
   customDownMessage: string;
-  onChangeCustomDownMessage: (msg: string) => void; // ahora recibe string
+  onChangeCustomDownMessage: (msg: string) => void;
 };
 
 export const Menu = ({
@@ -158,7 +158,7 @@ export const Menu = ({
           elevenLabsKey={elevenLabsKey}
           openRouterKey={openRouterKey}
           elevenLabsParam={elevenLabsParam}
-          chatLog={chatLog as MessageWithChat[]} // ✅ Cast
+          chatLog={chatLog as MessageWithChat[]}
           systemPrompt={systemPrompt}
           koeiroParam={koeiroParam}
           onClickClose={() => setShowSettings(false)}
@@ -177,11 +177,9 @@ export const Menu = ({
           onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
 
-          // 🔥 Fix: convertimos el event a string antes de llamar a la prop
+          // ⚡ Pasamos la prop directamente, sin event
           customDownMessage={customDownMessage}
-          onChangeCustomDownMessage={(event) =>
-            onChangeCustomDownMessage(event.target.value)
-          }
+          onChangeCustomDownMessage={onChangeCustomDownMessage}
         />
       )}
 
