@@ -1,3 +1,4 @@
+// src/components/settings.tsx
 import React, { useEffect, useState } from "react";
 import { IconButton } from "./iconButton";
 import { TextButton } from "./textButton";
@@ -6,7 +7,7 @@ import { ElevenLabsParam } from "@/features/constants/elevenLabsParam";
 import { KoeiroParam } from "@/features/constants/koeiroParam";
 import { RestreamTokens } from "./restreamTokens";
 import { Link } from "./link";
-import { Message } from "@/features/messages/messages"; // ✅ Import original Message
+import { Message } from "@/features/messages/messages";
 
 export interface ChatMessage {
   username: string;
@@ -17,7 +18,6 @@ export interface ChatMessage {
   emojis?: any[];
 }
 
-// Combina el Message original con las propiedades extra de chat
 export type MessageWithChat = Omit<Message, "role"> &
   Partial<ChatMessage> & { role: Message["role"] };
 
@@ -33,9 +33,7 @@ type Props = {
   onChangeAiKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onChangeElevenLabsKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onChangeElevenLabsVoice: (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => void;
+  onChangeElevenLabsVoice: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   onChangeSystemPrompt: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onChangeChatLog: (index: number, text: string) => void;
   onChangeKoeiroParam: (x: number, y: number) => void;
@@ -46,6 +44,8 @@ type Props = {
   onChangeBackgroundImage: (image: string) => void;
   onTokensUpdate: (tokens: any) => void;
   onChatMessage: (message: any) => void;
+  customDownMessage: string;
+  onChangeCustomDownMessage: (msg: string) => void;
 };
 
 export const Settings = ({
@@ -71,15 +71,13 @@ export const Settings = ({
   onChangeBackgroundImage,
   onTokensUpdate,
   onChatMessage,
+  customDownMessage,
+  onChangeCustomDownMessage,
 }: Props) => {
   const [elevenLabsVoices, setElevenLabsVoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<
     "general" | "personality" | "voices" | "vrm" | "streaming" | "history" | "about"
-  >("general");
-
-  const [customDownMessage, setCustomDownMessage] = useState<string>(
-    localStorage.getItem("customDownMessage") || ""
-  );
+  >("personality");
 
   useEffect(() => {
     if (elevenLabsKey) {
@@ -92,10 +90,6 @@ export const Settings = ({
       setElevenLabsVoices([]);
     }
   }, [elevenLabsKey]);
-
-  useEffect(() => {
-    localStorage.setItem("customDownMessage", customDownMessage);
-  }, [customDownMessage]);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -118,11 +112,7 @@ export const Settings = ({
   return (
     <div className="absolute z-40 w-full h-full bg-white/80 backdrop-blur">
       <div className="absolute m-24">
-        <IconButton
-          iconName="24/Close"
-          isProcessing={false}
-          onClick={onClickClose}
-        />
+        <IconButton iconName="24/Close" isProcessing={false} onClick={onClickClose} />
       </div>
 
       <div className="max-h-full overflow-auto">
@@ -144,9 +134,7 @@ export const Settings = ({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`pb-4 px-6 md:px-8 whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-secondary font-bold"
-                    : "text-gray-500"
+                  activeTab === tab.id ? "border-b-2 border-secondary font-bold" : "text-gray-500"
                 }`}
               >
                 {tab.label}
@@ -158,14 +146,15 @@ export const Settings = ({
           {activeTab === "general" && (
             <div>
               <div className="my-24">
-                <div className="my-16 typography-20 font-bold">
-                  Mensaje personalizado cuando OpenRouter esté caído
-                </div>
+                <div className="my-8 typography-20 font-bold">Mensaje de caída de OpenRouter</div>
                 <textarea
                   value={customDownMessage}
-                  onChange={(e) => setCustomDownMessage(e.target.value)}
-                  placeholder="Ejemplo: 'El servidor de OpenRouter está caído. Inténtalo en unos minutos.'"
-                  className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-80 rounded-8 w-full"
+                  onChange={(e) => {
+                    onChangeCustomDownMessage(e.target.value);
+                    localStorage.setItem("customDownMessage", e.target.value);
+                  }}
+                  placeholder="Ejemplo: El servidor de OpenRouter está en mantenimiento, inténtalo más tarde."
+                  className="px-16 py-8 bg-surface1 hover:bg-surface1-hover h-120 rounded-8 w-full"
                 />
               </div>
             </div>
@@ -175,9 +164,7 @@ export const Settings = ({
           {activeTab === "personality" && (
             <div>
               <div className="my-24">
-                <div className="my-16 typography-20 font-bold">
-                  OpenRouter API
-                </div>
+                <div className="my-16 typography-20 font-bold">OpenRouter API</div>
                 <input
                   type="text"
                   placeholder="OpenRouter API key"
@@ -188,9 +175,7 @@ export const Settings = ({
               </div>
 
               <div className="my-24">
-                <div className="my-8 typography-20 font-bold">
-                  Character Settings
-                </div>
+                <div className="my-8 typography-20 font-bold">Character Settings</div>
                 <div className="my-8">
                   <TextButton onClick={onClickResetSystemPrompt}>
                     Reset character settings
@@ -209,9 +194,7 @@ export const Settings = ({
           {activeTab === "voices" && (
             <div>
               <div className="my-24">
-                <div className="my-16 typography-20 font-bold">
-                  Eleven Labs API
-                </div>
+                <div className="my-16 typography-20 font-bold">Eleven Labs API</div>
                 <input
                   type="text"
                   placeholder="ElevenLabs API key"
@@ -222,9 +205,7 @@ export const Settings = ({
               </div>
 
               <div className="my-40">
-                <div className="my-16 typography-20 font-bold">
-                  Voice Selection
-                </div>
+                <div className="my-16 typography-20 font-bold">Voice Selection</div>
                 <select
                   className="h-40 px-8"
                   onChange={onChangeElevenLabsVoice}
@@ -247,22 +228,13 @@ export const Settings = ({
           {activeTab === "vrm" && (
             <div>
               <div className="my-40">
-                <div className="my-16 typography-20 font-bold">
-                  Character Model
-                </div>
+                <div className="my-16 typography-20 font-bold">Character Model</div>
                 <TextButton onClick={onClickOpenVrmFile}>Open VRM</TextButton>
               </div>
 
               <div className="my-40">
-                <div className="my-16 typography-20 font-bold">
-                  Background Image
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="my-4"
-                />
+                <div className="my-16 typography-20 font-bold">Background Image</div>
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="my-4" />
                 {backgroundImage && (
                   <div className="my-8">
                     <img
@@ -270,9 +242,7 @@ export const Settings = ({
                       alt="Background"
                       className="max-w-[200px] rounded-4"
                     />
-                    <TextButton onClick={handleRemoveBackground}>
-                      Remove Background
-                    </TextButton>
+                    <TextButton onClick={handleRemoveBackground}>Remove Background</TextButton>
                   </div>
                 )}
               </div>
@@ -281,22 +251,15 @@ export const Settings = ({
 
           {/* STREAMING */}
           {activeTab === "streaming" && (
-            <RestreamTokens
-              onTokensUpdate={onTokensUpdate}
-              onChatMessage={onChatMessage}
-            />
+            <RestreamTokens onTokensUpdate={onTokensUpdate} onChatMessage={onChatMessage} />
           )}
 
           {/* HISTORIAL */}
           {activeTab === "history" && (
             <div>
               <div className="my-8 grid-cols-2">
-                <div className="my-16 typography-20 font-bold">
-                  Conversation History
-                </div>
-                <TextButton onClick={onClickResetChatLog}>
-                  Reset conversation history
-                </TextButton>
+                <div className="my-16 typography-20 font-bold">Conversation History</div>
+                <TextButton onClick={onClickResetChatLog}>Reset conversation history</TextButton>
               </div>
               {chatLog.map((value, index) => (
                 <div
@@ -304,9 +267,7 @@ export const Settings = ({
                   className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center"
                 >
                   <div className="w-[120px] py-8 flex items-center gap-2">
-                    {value.role === "assistant"
-                      ? "Character"
-                      : value.username || "You"}
+                    {value.role === "assistant" ? "Character" : value.username || "You"}
                     {value.badges?.map((badge, i) => (
                       <img key={i} src={badge} className="h-4 w-4" />
                     ))}
@@ -315,9 +276,7 @@ export const Settings = ({
                     className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                     type="text"
                     value={value.content || value.text || ""}
-                    onChange={(event) =>
-                      onChangeChatLog(index, event.target.value)
-                    }
+                    onChange={(event) => onChangeChatLog(index, event.target.value)}
                   />
                 </div>
               ))}
@@ -338,9 +297,7 @@ export const Settings = ({
                   label="https://github.com/zoan37/ChatVRM"
                 />
               </p>
-              <p className="mb-4">
-                Inspirado por Pixiv, OpenRouter y ElevenLabs
-              </p>
+              <p className="mb-4">Inspirado por Pixiv, OpenRouter y ElevenLabs</p>
               <p className="text-sm text-gray-600">
                 (C)2025 Franniel Medina - Todos los derechos reservados
               </p>
