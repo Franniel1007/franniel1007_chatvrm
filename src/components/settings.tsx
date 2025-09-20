@@ -14,7 +14,7 @@ type Props = {
   elevenLabsKey: string;
   openRouterKey: string;
   systemPrompt: string;
-  chatLog: (Message & ChatMessage)[];
+  chatLog: Message[]; // <-- Solo Message[]
   elevenLabsParam: ElevenLabsParam;
   koeiroParam: KoeiroParam;
   onClickClose: () => void;
@@ -92,36 +92,6 @@ export const Settings = ({
   const handleRemoveBackground = () => {
     onChangeBackgroundImage("");
     localStorage.removeItem("backgroundImage");
-  };
-
-  // Función para renderizar texto con emojis
-  const renderTextWithEmotes = (value: Message & ChatMessage) => {
-    if (!value.emotes) return value.content;
-    const content = value.content;
-    const parts: React.ReactNode[] = [];
-    const emotePositions: { start: number; end: number; url: string }[] = [];
-
-    Object.entries(value.emotes).forEach(([emoteId, positions]) => {
-      positions.forEach((pos) => {
-        const [start, end] = pos.split("-").map(Number);
-        emotePositions.push({
-          start,
-          end,
-          url: `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/dark/1.0`,
-        });
-      });
-    });
-
-    emotePositions.sort((a, b) => a.start - b.start);
-
-    let lastIndex = 0;
-    emotePositions.forEach((em, idx) => {
-      if (em.start > lastIndex) parts.push(content.slice(lastIndex, em.start));
-      parts.push(<img key={idx} src={em.url} className="inline h-5 w-5" />);
-      lastIndex = em.end + 1;
-    });
-    if (lastIndex < content.length) parts.push(content.slice(lastIndex));
-    return parts;
   };
 
   return (
@@ -252,7 +222,7 @@ export const Settings = ({
               {chatLog.map((value, index) => (
                 <div key={index} className="my-8 grid grid-cols-[min-content_1fr] gap-x-4 items-center">
                   <div className="w-[120px] py-8 flex items-center gap-2">
-                    {value.role === "assistant" ? "Character" : value.displayName || value.username}
+                    {value.role === "assistant" ? "Character" : value.username || "You"}
                     {value.badges?.map((badge, i) => (
                       <img key={i} src={badge} className="h-4 w-4" />
                     ))}
@@ -260,7 +230,7 @@ export const Settings = ({
                   <input
                     className="bg-surface1 hover:bg-surface1-hover rounded-8 w-full px-16 py-8"
                     type="text"
-                    value={renderTextWithEmotes(value)}
+                    value={value.content}
                     readOnly
                   />
                 </div>
