@@ -32,9 +32,9 @@ type Props = {
   onChangeOpenRouterKey: (event: React.ChangeEvent<HTMLInputElement>) => void;
   openRouterKey: string;
 
-  // 🔥 Nuevas props para el mensaje personalizado
+  // Nuevas props para mensaje personalizado
   customDownMessage: string;
-  onChangeCustomDownMessage: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeCustomDownMessage: (msg: string) => void; // ahora recibe string
 };
 
 export const Menu = ({
@@ -176,9 +176,12 @@ export const Menu = ({
           onTokensUpdate={onTokensUpdate}
           onChatMessage={onChatMessage}
           onChangeOpenRouterKey={onChangeOpenRouterKey}
-          // 🔥 Pasamos las nuevas props
+
+          // 🔥 Fix: convertimos el event a string antes de llamar a la prop
           customDownMessage={customDownMessage}
-          onChangeCustomDownMessage={onChangeCustomDownMessage}
+          onChangeCustomDownMessage={(event) =>
+            onChangeCustomDownMessage(event.target.value)
+          }
         />
       )}
 
