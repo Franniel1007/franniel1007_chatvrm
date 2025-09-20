@@ -1,6 +1,10 @@
 // openAIchat.ts
 
-import { Message } from "./types";
+// Definición del tipo Message directamente aquí
+export interface Message {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
 
 export async function getChatResponseStream(
   messages: Message[],
